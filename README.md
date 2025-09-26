@@ -44,57 +44,98 @@ MCP is a standardized protocol that defines how an AI application (the *host*) c
 
 ## MCP Client-Server Architecture and Components – How hosts, clients, and servers fit together and why this split is useful
 
-MCP follows a **client-server architecture** with clear roles for each participant:
-
-* **MCP Host (AI Application)** – what the end-user interacts with. **Role** – orchestrates the conversation and decides when to use external tools. **Examples** – Claude Desktop, a ChatGPT client, an AI-enhanced IDE like VS Code or Cursor.
-
-* **MCP Client** – the host’s connector that speaks MCP to servers. **Role** – translates host requests into MCP JSON-RPC and relays responses back. **Pattern** – one client per server the host connects to.
-
-* **MCP Server** – a standalone program/service exposing tools and/or data via MCP. **Role** – execute actions or provide data. **Deployment** – runs locally (e.g., filesystem) or remotely (e.g., SaaS).
-
-This design echoes the **Language Server Protocol (LSP)**: a decoupled, sandboxed tool runs as a separate process/service, and the host interacts only via the protocol.
+```mermaid
+flowchart LR
+  U[User] -->|prompts| H[Host / AI App]
+  H --> C[MCP Client]
+  C <-->|JSON-RPC| S[MCP Server]
+  S --> T1[Tools]
+  S --> R1[Resources]
+  S --> P1[Prompts]
+  style S fill:#eef,stroke:#88a
+  style C fill:#efe,stroke:#8a8
+  style H fill:#fee,stroke:#a88
+```
 
 ### MCP layers in practice – How data and transport are combined in real deployments
 
-All interactions use the **JSON-RPC** data format. On top of that, MCP supports two main transports:
-
-* **STDIO (local pipes)** – **what it is about** – launch a local server as a subprocess and exchange JSON via stdin/stdout. **Why you’d use it** – minimal overhead, simple, secure-by-context (same machine). **Typical usage** – IDE to local file server.
-
-* **HTTP + SSE (web)** – **what it is about** – send JSON-RPC via HTTP POST to `/rpc`; stream notifications/results via **Server-Sent Events** (SSE). **Why you’d use it** – remote services, auth (bearer/API key/OAuth), scalability. **Typical usage** – desktop AI app to cloud-hosted tool.
-
-**Key insight** – the **JSON payloads are identical** regardless of transport; only the envelope changes. This lets tools move between local and cloud with minimal code changes.
-
-
+```mermaid
+flowchart TB
+  subgraph Data Layer (JSON-RPC)
+    I[initialize]
+    TL[tools/list]
+    TC[tools/call]
+  end
+  subgraph Transports
+    STD[STDIO]
+    HTTP[HTTP + SSE]
+  end
+  I --> TL --> TC
+  Data Layer (JSON-RPC) --> STD
+  Data Layer (JSON-RPC) --> HTTP
+```
 
 ## MCP Workflow: Initialization to Tool Usage – A step-by-step view of the handshake and a typical tool call
 
-This section walks through the **lifecycle** of an MCP session, from handshake to tool invocation. It explains *what goes back and forth* on the wire and *how the client decides to invoke a tool* during a conversation.
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant H as Host/LLM
+  participant C as MCP Client
+  participant S as MCP Server
+  U->>H: Ask task (needs a tool?)
+  H->>C: initialize
+  C->>S: {jsonrpc: "2.0", method: "initialize"}
+  S-->>C: InitializeResult
+  H->>C: list tools
+  C->>S: {method: "tools/list"}
+  S-->>C: tools[] (name, description, inputSchema,...)
+  H->>H: Decide to call tool (function call)
+  H->>C: tools/call(name, arguments)
+  C->>S: {method: "tools/call", params: {name, arguments}}
+  S-->>C: {content[], structuredContent, isError}
+  C-->>H: Tool result as context
+  H-->>U: Final answer
+```
 
-**High-level steps – the main phases you should visualize:**
+### Optional: Chat with tools via local Ollama (Granite 3.3)
 
-* **User prompt & agent decision** – the user asks something; the AI decides it needs a tool (e.g., count “TODO” lines in `report.txt`).
+```mermaid
+flowchart LR
+  subgraph Local Machine
+    subgraph App
+      CH[chat_with_tools.py]
+      CL[OpenAI-compatible Client]
+    end
+    OL[Ollama (granite3.3)]
+    SRV[server.py]
+  end
+  CH --> CL --> OL
+  CH -->|JSON-RPC| SRV
+  SRV -->|file ops| FS[(mcp_files/)]
+```
 
-* **Client initialization** – **`initialize`** request with `protocolVersion`, client capabilities and info; **InitializeResult** returns protocol version, server capabilities, and `serverInfo`.
+### Logging and Real-time Log Viewer
 
-* **Post-handshake ack** – **`notifications/initialized`** from client to confirm readiness.
+```mermaid
+flowchart LR
+  SRV[server.py] -->|JSONL| L1[(logs/mcp-server.jsonl)]
+  C1[client.py] -->|JSONL| L2[(logs/mcp-client-simple.jsonl)]
+  C2[chat_with_tools.py] -->|JSONL| L3[(logs/mcp-client-chat.jsonl)]
+  LV[log_viewer.py] -->|SSE| UI[Browser UI]
+  L1 & L2 & L3 --> LV
+```
 
-* **Tool discovery** – **`tools/list`** returns tools with **`name`**, **`description`**, **`inputSchema`**, and optional **`outputSchema`**. The host aggregates tools from all servers and **feeds schemas to the LLM** (prompt augmentation).
+### Wiring Guide: How everything fits together (server, clients, LLM, logs)
 
-* **Model decides to invoke** – the LLM emits a **function call** (name + JSON args) rather than a normal message.
-
-* **Tool execution request** – **`tools/call`** with tool **`name`** and **`arguments`** (validated against schema).
-
-* **Server execution** – the server performs the action (read/search/etc.).
-
-* **Execution response** – JSON-RPC result with **`content`** (human-readable), **`structuredContent`** (machine-readable), and **`isError`** flag.
-
-* **AI receives result** – the host injects the tool result into the conversation context so the model can use it next turn.
-
-* **AI replies to user** – the user sees the final answer that incorporates tool output.
-
-* **Session lifetime** – connection stays open for more calls or is gracefully shut down (MCP defines a shutdown phase).
-
-> **Sequence diagram (described)** – *Host → Client → Server → External system (optional)*. The flow illustrates `initialize` / `initialized`, `tools/list`, LLM function call → `tools/call`, and result propagation back to the user.
+```mermaid
+flowchart TB
+  A[Start server.py] --> B[Run client.py]
+  A --> C[Run chat_with_tools.py]
+  B --> D[See logs in log_viewer]
+  C --> D
+  D --> E[Dashboard: All | Server | Clients]
+```
 
 
 
