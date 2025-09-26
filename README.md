@@ -134,7 +134,7 @@ flowchart TB
   A --> C[Run chat_with_tools.py]
   B --> D[See logs in log_viewer]
   C --> D
-  D --> E[Dashboard: All | Server | Clients]
+  D --> E[Dashboard: All, Server, Clients]
 ```
 
 
