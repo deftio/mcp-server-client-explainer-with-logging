@@ -497,7 +497,7 @@ As these standards gain adoption (with broad support visible for MCP and the fas
 
 The information and examples above were drawn from the official MCP documentation and community explanations, as well as industry analyses of MCP’s significance. The interplay between MCP, function calling, and A2A was informed by recent blog posts and standards releases.
 
----
+
 
 ### Table of Contents (Quick links)
 - [Overview of the Model Context Protocol (MCP)](#overview-of-the-model-context-protocol-mcp--what-mcp-is-at-a-high-level-and-the-elements-it-standardizes)
@@ -647,7 +647,7 @@ Minimal object shapes to recognize
 - Better schema validation
   - Validate `arguments` against the `inputSchema` before calling the tool function and return helpful schema errors.
 
----
+
 
 ### Optional: Chat with tools via local Ollama (Granite 3.3)
 
@@ -682,7 +682,7 @@ Troubleshooting:
 - If the model doesn't call tools, try prompting explicitly: "Use available tools to complete the task."
 - If files are missing, check the sandbox at `./mcp_files`.
 
----
+
 
 ### Logging and Real-time Log Viewer
 
@@ -743,7 +743,25 @@ Security considerations
 - The viewer reads local files only and is intended for local development.
 - Do not expose it on the public internet without authentication and proper hardening.
 
----
+
+
+### README Viewer (SquibView)
+
+A static page is included to render this `README.md` with SquibView (autoload ESM), which supports Mermaid, syntax highlight, and more.
+
+- Start viewer server:
+```bash
+uv run python log_viewer.py
+```
+- Open the README viewer:
+  - `http://127.0.0.1:5050/readme`
+  - It loads `README.md` from `http://127.0.0.1:5050/raw/README.md` into the SquibView autoload example at `https://deftio.github.io/squibview/examples/example_autoload_esm.html` [[SquibView Autoload Example]](https://deftio.github.io/squibview/examples/example_autoload_esm.html)
+
+Notes
+- The page title is set to “MCP Example – README Viewer”.
+- If the iframe fails to load, a raw Markdown fallback is shown.
+
+
 
 ### Configure LLM provider via .env (defaults to Ollama)
 

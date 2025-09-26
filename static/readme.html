@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MCP Example – README Viewer</title>
+    <style>
+      body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; }
+      header { display: flex; align-items: center; justify-content: space-between; padding: .5rem .75rem; background: #0d6efd; color: #fff; }
+      header a { color: #fff; text-decoration: underline; }
+      .wrap { height: calc(100vh - 48px); display: grid; grid-template-rows: 1fr; }
+      iframe { width: 100%; height: 100%; border: 0; }
+      .fallback { padding: 1rem; }
+      pre { white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div><strong>MCP Example</strong> – README rendered with SquibView</div>
+      <nav>
+        <a id="openExternal" target="_blank" rel="noopener">Open in new tab</a>
+      </nav>
+    </header>
+    <div class="wrap">
+      <iframe id="svframe" title="SquibView README"></iframe>
+      <div id="fallback" class="fallback" style="display:none">
+        <h3>Fallback view (raw Markdown)</h3>
+        <pre id="md"></pre>
+      </div>
+    </div>
+
+    <script>
+      (function() {
+        const origin = window.location.origin;
+        const mdUrl = origin + '/raw/README.md';
+        const viewer = 'https://deftio.github.io/squibview/examples/example_autoload_esm.html';
+        // SquibView autoload example supports loading an external markdown via hash prefix "@"
+        const target = viewer + '#@' + encodeURIComponent(mdUrl);
+        const frame = document.getElementById('svframe');
+        const openExternal = document.getElementById('openExternal');
+        frame.src = target;
+        openExternal.href = target;
+
+        // Simple fallback: if iframe fails to load within timeout, fetch raw markdown
+        let loaded = false;
+        frame.addEventListener('load', () => { loaded = true; });
+        setTimeout(() => {
+          if (!loaded) {
+            document.getElementById('fallback').style.display = 'block';
+            fetch(mdUrl).then(r => r.text()).then(t => {
+              document.getElementById('md').textContent = t;
+            }).catch(() => {
+              document.getElementById('md').textContent = 'Unable to load README.md';
+            });
+          }
+        }, 2000);
+      })();
+    </script>
+  </body>
+</html>

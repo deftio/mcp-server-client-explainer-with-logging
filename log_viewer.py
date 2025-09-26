@@ -7,12 +7,12 @@ import time
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional
 
-from flask import Flask, Response, render_template_string, request
+from flask import Flask, Response, render_template_string, request, send_from_directory
 
 LOG_DIR = "./logs"
 POLL_INTERVAL_SEC = 0.5
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static", static_url_path="/static")
 
 INDEX_HTML = """
 <!doctype html>
@@ -48,8 +48,9 @@ INDEX_HTML = """
               <label class="form-check-label" for="follow">Auto-scroll</label>
             </div>
           </div>
-          <div class="align-self-end">
+          <div class="align-self-end d-flex gap-2">
             <a href="/dashboard" class="btn btn-outline-secondary">Dashboard</a>
+            <a href="/readme" class="btn btn-outline-primary">README Viewer</a>
             <button id="apply" class="btn btn-primary">Apply</button>
           </div>
         </div>
@@ -328,7 +329,8 @@ def index() -> str:
 
 @app.get("/dashboard")
 def dashboard() -> str:
-    return render_template_string(DASHBOARD_HTML)
+    from flask import render_template_string as rts
+    return rts(DASHBOARD_HTML)
 
 
 @app.get("/files")
@@ -360,6 +362,16 @@ def stream_logs() -> Response:
                 yield f"data: {line}\n\n"
 
     return Response(event_stream(), mimetype="text/event-stream")
+
+
+@app.get("/readme")
+def readme_viewer():
+    return send_from_directory(app.static_folder, "readme.html")
+
+
+@app.get("/raw/README.md")
+def raw_readme():
+    return send_from_directory(os.getcwd(), "README.md", mimetype="text/markdown")
 
 
 if __name__ == "__main__":
