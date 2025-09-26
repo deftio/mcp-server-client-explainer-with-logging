@@ -61,7 +61,7 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-  subgraph Data Layer (JSON-RPC)
+  subgraph DataLayer["Data Layer (JSON-RPC)"]
     I[initialize]
     TL[tools/list]
     TC[tools/call]
@@ -71,8 +71,8 @@ flowchart TB
     HTTP[HTTP + SSE]
   end
   I --> TL --> TC
-  Data Layer (JSON-RPC) --> STD
-  Data Layer (JSON-RPC) --> HTTP
+  DataLayer --> STD
+  DataLayer --> HTTP
 ```
 
 ## MCP Workflow: Initialization to Tool Usage – A step-by-step view of the handshake and a typical tool call
@@ -102,12 +102,12 @@ sequenceDiagram
 
 ```mermaid
 flowchart LR
-  subgraph Local Machine
+  subgraph LocalMachine["Local Machine"]
     subgraph App
       CH[chat_with_tools.py]
       CL[OpenAI-compatible Client]
     end
-    OL[Ollama (granite3.3)]
+    OL["Ollama (granite3.3)"]
     SRV[server.py]
   end
   CH --> CL --> OL
@@ -119,9 +119,9 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-  SRV[server.py] -->|JSONL| L1[(logs/mcp-server.jsonl)]
-  C1[client.py] -->|JSONL| L2[(logs/mcp-client-simple.jsonl)]
-  C2[chat_with_tools.py] -->|JSONL| L3[(logs/mcp-client-chat.jsonl)]
+  SRV[server.py] -->|JSONL| L1["logs/mcp-server.jsonl"]
+  C1[client.py] -->|JSONL| L2["logs/mcp-client-simple.jsonl"]
+  C2[chat_with_tools.py] -->|JSONL| L3["logs/mcp-client-chat.jsonl"]
   LV[log_viewer.py] -->|SSE| UI[Browser UI]
   L1 & L2 & L3 --> LV
 ```
