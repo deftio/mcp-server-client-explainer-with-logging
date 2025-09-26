@@ -742,3 +742,36 @@ Notes
 Security considerations
 - The viewer reads local files only and is intended for local development.
 - Do not expose it on the public internet without authentication and proper hardening.
+
+---
+
+### Configure LLM provider via .env (defaults to Ollama)
+
+Create a `.env` in the project root to choose which provider to use for `chat_with_tools.py`:
+
+```env
+# Provider selection: ollama | openai | anthropic
+PROVIDER=ollama
+
+# Ollama (default)
+OLLAMA_BASE_URL=http://127.0.0.1:11434/v1
+OLLAMA_MODEL=granite3.3
+# OLLAMA_API_KEY=ollama  # not required, placeholder accepted
+
+# OpenAI (optional)
+# PROVIDER=openai
+# OPENAI_API_KEY=sk-...
+# OPENAI_MODEL=gpt-4o-mini
+# OPENAI_BASE_URL=https://api.openai.com/v1  # override only if needed
+
+# Anthropic (optional)
+# PROVIDER=anthropic
+# ANTHROPIC_API_KEY=...
+# ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
+```
+
+Usage notes
+- If no `.env` is present, the chat uses Ollama at `http://127.0.0.1:11434/v1` with `granite3.3`.
+- For OpenAI, set `PROVIDER=openai` and `OPENAI_API_KEY`; optionally override model/base URL.
+- For Anthropic, set `PROVIDER=anthropic` and `ANTHROPIC_API_KEY` (tool-use supported via `messages.create`).
+- Logs include the `provider` used in each chat session.
